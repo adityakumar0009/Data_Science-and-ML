@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Resume Categorization</title>
+    <style>
+      /* Gradient Background */
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(to right, #6a11cb, #2575fc);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      h2 {
+        margin-bottom: 15px;
+      }
+
+      /* Drop Zone Styling */
+      #dropZone {
+        border: 2px dashed #ffffff;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        margin: 20px auto;
+        width: 50%;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s ease-in-out;
+      }
+
+      #dropZone:hover,
+      #dropZone.dragover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      #fileList {
+        list-style-type: none;
+        padding: 0;
+      }
+
+      /* Progress Bar */
+      .progress {
+        width: 50%;
+        margin: 10px auto;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0;
+        background: #28a745;
+        transition: width 0.3s;
+      }
+
+      /* Button Styling */
+      button {
+        margin-top: 15px;
+        padding: 12px 20px;
+        background: #ff5722;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        transition: 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      button:hover {
+        background: #e64a19;
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Results List */
+      #results {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+        text-align: left;
+      }
+
+      #results li {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px;
+        margin: 5px auto;
+        width: 60%;
+        border-radius: 5px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Upload Resumes</h2>
+
+    <div id="dropZone">Drag & Drop Resumes Here or Click to Select</div>
+    <input type="file" id="fileInput" multiple style="display: none" />
+
+    <ul id="fileList"></ul>
+
+    <button onclick="uploadFiles()">Upload</button>
+
+    <div class="progress">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <h3>Results:</h3>
+    <ul id="results"></ul>
+
+    <script>
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const fileList = document.getElementById("fileList");
+      const progressBar = document.getElementById("progressBar");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("dragover")
+      );
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        fileInput.files = e.dataTransfer.files;
+        updateFileList();
+      });
+
+      fileInput.addEventListener("change", updateFileList);
+
+      function updateFileList() {
+        fileList.innerHTML = "";
+        const files = fileInput.files;
+        for (let file of files) {
+          let li = document.createElement("li");
+          li.textContent = file.name;
+          fileList.appendChild(li);
+        }
+      }
+
+      function uploadFiles() {
+        let files = fileInput.files;
+        let formData = new FormData();
+
+        if (files.length === 0) {
+          alert("Please select files first!");
+          return;
+        }
+
+        for (let i = 0; i < files.length; i++) {
+          formData.append("files[]", files[i]);
+        }
+
+        progressBar.style.width = "0%";
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            let resultList = document.getElementById("results");
+            resultList.innerHTML = "";
+            data.forEach((resume) => {
+              let li = document.createElement("li");
+              li.innerText = `Filename: ${resume.filename}, Category: ${resume.category}`;
+              resultList.appendChild(li);
+            });
+
+            progressBar.style.width = "100%";
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+    </script>
+  </body>
+</html>
